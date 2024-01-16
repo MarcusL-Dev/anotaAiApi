@@ -1,12 +1,11 @@
 package dev.marcus.anotaAiApi.services.impls;
 
 import java.util.List;
-import java.util.Optional;
-
 import org.springframework.stereotype.Service;
 
 import dev.marcus.anotaAiApi.domain.category.Category;
 import dev.marcus.anotaAiApi.domain.category.CategoryDTO;
+import dev.marcus.anotaAiApi.domain.category.exceptions.CategoryNotFoundException;
 import dev.marcus.anotaAiApi.repositories.CategoryRepository;
 import dev.marcus.anotaAiApi.services.interfaces.CategoryService;
 import lombok.AllArgsConstructor;
@@ -23,8 +22,15 @@ public class CategoryServiceImpl implements CategoryService{
     }
 
     @Override
-    public Optional<Category> getCategory(String categoryId) {
-        return categoryRepository.findById(categoryId);
+    public Category getCategory(String categoryId) {
+        try {
+            return categoryRepository.findById(categoryId)
+                    .orElseThrow(() -> new CategoryNotFoundException("Category not found with ID: " + categoryId));
+        } catch (CategoryNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("An unexpected error occurred while retrieving the category", e);
+        }
     }
 
     @Override
@@ -36,21 +42,19 @@ public class CategoryServiceImpl implements CategoryService{
 
     @Override
     public Category udateCategory(CategoryDTO categoryData, String categoryId) {
-        Optional<Category> category = categoryRepository.findById(categoryId);
-        Category updatedCategory = category.get();
+        Category category = getCategory(categoryId);
 
-        updatedCategory.setTitle(categoryData.title());
-        updatedCategory.setDescription(categoryData.description());
-        updatedCategory.setOwnerId(categoryData.ownerId());
+        category.setTitle(categoryData.title());
+        category.setDescription(categoryData.description());
+        category.setOwnerId(categoryData.ownerId());
 
-        categoryRepository.save(updatedCategory);
-        return updatedCategory;
+        return categoryRepository.save(category);
     }
 
     @Override
     public Category deleteCategory(String categoryId) {
-        Category deletedCategory = categoryRepository.findById(categoryId).get();
-        categoryRepository.delete(deletedCategory);
-        return deletedCategory;
+        Category category = getCategory(categoryId);
+        categoryRepository.delete(category);
+        return category;
     }
 }
